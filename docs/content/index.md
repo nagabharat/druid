@@ -2,60 +2,148 @@
 layout: doc_page
 ---
 
-# About Druid
-
-Druid is an open-source analytics data store designed for OLAP queries on timeseries data (trillions of events, petabytes of data). Druid provides cost-effective and always-on real-time data ingestion, arbitrary data exploration, and fast data aggregation.
-
--   Try out Druid with our Getting Started [Tutorial](./Tutorial%3A-A-First-Look-at-Druid.html)
--   Learn more by reading the [White Paper](http://static.druid.io/docs/druid.pdf)
-
-Key Features
-------------
-
--   **Designed for Analytics** - Druid is built for exploratory analytics for OLAP workflows. It supports a variety of filters, aggregators and query types and provides a framework for plugging in new functionality. Users have leveraged Druid’s infrastructure to develop features such as top K queries and histograms.
--   **Interactive Queries** - Druid’s low-latency data ingestion architecture allows events to be queried milliseconds after they are created. Druid’s query latency is optimized by reading and scanning only exactly what is needed. Aggregate and filter on data without sitting around waiting for results. Druid is ideal for powering analytic dashboards.
--   **Highly Available** - Druid is used to back SaaS implementations that need to be up all the time. Your data is still available and queryable during system updates. Scale up or down without data loss.
--   **Scalable** - Existing Druid deployments handle billions of events and terabytes of data per day. Druid is designed to be petabyte scale.
-
-
-Why Druid?
-----------
-
-Druid was originally created to resolve query latency issues seen with trying to use Hadoop to power an interactive service. It's especially useful if you are summarizing your data sets and then querying the summarizations. Put your summarizations into Druid and get quick queryability out of a system that you can be confident will scale up as your data volumes increase. Deployments have scaled up to many TBs of data per hour at peak ingested and aggregated in real-time.
-
-Druid is a system that you can set up in your organization next to Hadoop. It provides the ability to access your data in an interactive slice-and-dice fashion. It trades off some query flexibility and takes over the storage format in order to provide the speed.
-
-We have more details about the general design of the system and why you might want to use it in our [White Paper](http://static.druid.io/docs/druid.pdf) or in our [Design](Design.html) doc.
-
-
-When Druid?
-----------
-
-* You need to do interactive aggregations and fast exploration on large amounts of data
-* You need ad-hoc analytic queries (not a key-value store)
-* You have a lot of data (10s of billions of events added per day, 10s of TB of data added per day)
-* You want to do your analysis on data as it’s happening (in real-time)
-* You need a data store that is always available with no single point of failure.
-
-Architecture Overview
+Introduction to Druid
 ---------------------
 
-Druid is partially inspired by search infrastructure and creates mostly immutable views of data and stores the data in data structures highly optimized for aggregations and filters. A Druid cluster is composed of various types of nodes, each designed to do a small set of things very well.
+Druid is an open source data store designed for [OLAP](http://en.wikipedia.org/wiki/Online_analytical_processing) queries on timeseries data.
+This page is meant to provide readers with a high level overview of how Druid stores data, and the architecture of a Druid cluster.
 
-Druid vs…
-----------
+## The Data
 
-* [Druid-vs-Impala-or-Shark](Druid-vs-Impala-or-Shark.html)
-* [Druid-vs-Redshift](Druid-vs-Redshift.html)
-* [Druid-vs-Vertica](Druid-vs-Vertica.html)
-* [Druid-vs-Cassandra](Druid-vs-Cassandra.html)
-* [Druid-vs-Hadoop](Druid-vs-Hadoop.html)
-* [Druid-vs-Spark](Druid-vs-Spark.html)
-* [Druid-vs-Elasticsearch](Druid-vs-Elasticsearch.html)
+To frame our discussion, let's begin with an example data set (from online advertising):
 
-About This Page
-----------
-The data infrastructure world is vast, confusing and constantly in flux. This page is meant to help potential evaluators decide whether Druid is a good fit for the problem one needs to solve. If anything about it is incorrect please provide that feedback on the mailing list or via some other means so we can fix it.
+    timestamp             publisher          advertiser  gender  country  click  price
+    2011-01-01T01:01:35Z  bieberfever.com    google.com  Male    USA      0      0.65
+    2011-01-01T01:03:63Z  bieberfever.com    google.com  Male    USA      0      0.62
+    2011-01-01T01:04:51Z  bieberfever.com    google.com  Male    USA      1      0.45
+    2011-01-01T01:00:00Z  ultratrimfast.com  google.com  Female  UK       0      0.87
+    2011-01-01T02:00:00Z  ultratrimfast.com  google.com  Female  UK       0      0.99
+    2011-01-01T02:00:00Z  ultratrimfast.com  google.com  Female  UK       1      1.53
+
+This data set is composed of three distinct components. If you are familiar with OLAP terminology, the following concepts should not be new.
+
+* **Timestamp column**: We treat timestamp separately because all of our queries
+ center around the time axis.
+
+* **Dimension columns**: Here we have four dimensions of publisher, advertiser, gender, and country.
+They each represent an axis of the data that we’ve chosen to slice across.
+
+* **Metric columns**: These are impressions, clicks and revenue. These represent values, usually numeric,
+which are derived from an aggregation operation – such as count, sum, and mean (we also run variance and higher moment calculations).
+Also known as measures in standard OLAP terminology.
+
+Individually, the events are not very interesting, however, summarizations of this type of data can yield many useful insights.
+Druid can optionally choose to summarize this raw data at ingestion time using a process we refer to as "roll-up".
+Roll-up is a first-level aggregation operation over a selected set of dimensions, equivalent to (in pseudocode):
+
+    GROUP BY timestamp, publisher, advertiser, gender, country
+      :: impressions = COUNT(1),  clicks = SUM(click),  revenue = SUM(price)
+
+The compacted version of our original raw data looks something like this:
+
+     timestamp             publisher          advertiser  gender country impressions clicks revenue
+     2011-01-01T01:00:00Z  ultratrimfast.com  google.com  Male   USA     1800        25     15.70
+     2011-01-01T01:00:00Z  bieberfever.com    google.com  Male   USA     2912        42     29.18
+     2011-01-01T02:00:00Z  ultratrimfast.com  google.com  Male   UK      1953        17     17.31
+     2011-01-01T02:00:00Z  bieberfever.com    google.com  Male   UK      3194        170    34.01
+
+In practice, we see that rolling up data can dramatically reduce the size of data that needs to be stored (often by a factor of 100).
+This storage reduction does come at a cost; as we roll up data, we lose the ability to query individual events. Phrased another way,
+the rollup granularity is the minimum granularity you will be able to query data at. Hence, Druid ingestion specs define this granularity as the `queryGranularity` of the data.
+
+Druid is designed to perform single table operations and does not currently support joins.
+Although many production setups instrument joins at the ETL level, data must be denormalized before it is loaded into Druid.
+
+## Indexing the Data
+
+Druid gets its speed in part from how it stores data. Borrowing ideas from search infrastructure,
+Druid creates immutable snapshots of data, stored in data structures highly optimized for analytic queries.
+
+Druid is a column store, which means each individual column is stored separately. Only the columns that pertain to a query are used
+in that query, and Druid is pretty good about only scanning exactly what it needs for a query.
+Different columns can also employ different compression methods. Different columns can also have different indexes associated with them.
+
+## Sharding the Data
+
+Druid shards are called `segments` and Druid always first shards data by time. In our compacted data set, we can create two segments, one for each hour of data.
+
+For example:
+
+Segment `sampleData_2011-01-01T01:00:00:00Z_2011-01-01T02:00:00:00Z_v1_0` contains
+
+     2011-01-01T01:00:00Z  ultratrimfast.com  google.com  Male   USA     1800        25     15.70
+     2011-01-01T01:00:00Z  bieberfever.com    google.com  Male   USA     2912        42     29.18
 
 
+Segment `sampleData_2011-01-01T02:00:00:00Z_2011-01-01T03:00:00:00Z_v1_0` contains
 
+     2011-01-01T02:00:00Z  ultratrimfast.com  google.com  Male   UK      1953        17     17.31
+     2011-01-01T02:00:00Z  bieberfever.com    google.com  Male   UK      3194        170    34.01
+
+Segments are self-contained containers for the time interval of data they hold. Segments
+contain data stored in compressed column orientations, along with the indexes for those columns. Druid queries only understand how to
+scan segments.
+
+Segments are uniquely identified by a datasource, interval, version, and partition number.
+Multiple segments may exist for the same interval of time for the same datasource. These segments form a `block` for an interval.
+Druid queries will only complete if a `block` is complete. That is to say, if a block consists of 3 segments, such as:
+
+`sampleData_2011-01-01T02:00:00:00Z_2011-01-01T03:00:00:00Z_v1_0`
+
+`sampleData_2011-01-01T02:00:00:00Z_2011-01-01T03:00:00:00Z_v1_1`
+
+`sampleData_2011-01-01T02:00:00:00Z_2011-01-01T03:00:00:00Z_v1_2`
+
+All 3 segments must be loaded before a query for the interval `2011-01-01T02:00:00:00Z_2011-01-01T03:00:00:00Z` completes.
+
+## Loading the Data
+
+Druid currently has a couple of different ways of getting data into it. In the near future, we'd like to address this complexity and unify the various data ingestion methods.
+For now, Druid has a "real-time" method of delivering current time data, and a batch loading mechanism to load static data. Both the real-time and batch loading
+methods deal with creating immutable segments. In the case of real-time ingestion, mutable segments, which are also queryable, are created and periodically finalized into an
+immutable form. In the case of batch ingestion, immutable segments are created directly.
+
+Real-time ingestion in Druid is best effort. Much like other popular data infrastructure open source projects that deal with streams of data,
+exactly once semantics are not guaranteed with real-time ingestion in Druid. Like the other projects, we have it on our roadmap to move towards a streaming only world.
+One common approach to operating Druid is to have a real-time pipeline for recent insights, and a batch pipeline for the accurate copy of the data.
+
+## The Druid Cluster
+
+A Druid Cluster is composed of several different types of nodes. Each node is designed to do a small set of things very well.
+
+### Historical Nodes
+
+Historical nodes commonly form the backbone of a Druid cluster. Historical nodes download immutable segments locally and serve queries over those segments.
+The nodes have a shared nothing architecture and know how to load segments, drop segments, and serve queries on segments.
+
+### Broker Nodes
+
+Broker nodes are what clients and applications query to get data from Druid. Broker nodes are responsible for scattering queries and gathering and merging results.
+Broker nodes know what segments live where.
+
+### Coordinator Nodes
+
+Coordinator nodes manage segments on historical nodes in a cluster. Coordinator nodes tell historical nodes to load new segments, drop old segments, and move segments to load balance.
+
+### Real-time Processing Nodes
+
+Real-time processing in Druid can currently be done using standalone realtime nodes or using the indexing service. The real-time logic is common between these two services.
+Real-time processing involves ingesting data, indexing the data (creating segments), and handing segments off to historical nodes. Data is queryable as soon as it is
+ ingested by the realtime processing logic. The hand-off process is also lossless; data remains queryable throughout the entire process.
+
+### External Dependencies
+
+Druid has a couple of external dependencies for cluster operations.
+
+* **Distributed Coordination** Druid relies on a distributed coordination service for intra-cluster communication. The only supported distributed coordination service right now is Zookeeper.
+
+* **Metadata Storage** Druid relies on a metadata storage to store metadata about segments and configuration. Services that create segments write new entries to the metadata store
+  and the coordinator nodes monitor the metadata store to know when new data needs to be loaded or old data needs to be dropped. The metadata store is not
+  involved in the query path. MySQL and PostgreSQL are popular metadata stores.
+
+* **Deep Storage** Deep storage acts as a permanent backup of segments. Services that create segments upload segments to deep storage and historical nodes download
+segments from deep storage. Deep storage is not involved in the query path. S3 and HDFS are popular deep storages.
+
+### Comprehensive Architecture
+
+For a comprehensive look at Druid architecture, please read our [white paper](http://static.druid.io/docs/druid.pdf).

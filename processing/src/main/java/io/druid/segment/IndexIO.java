@@ -813,4 +813,14 @@ public class IndexIO
   {
     return new File(dir, String.format("met_%s_%s.drd", metricName, order));
   }
+
+  public static void main(String[] args) throws Exception
+  {
+    File v8 = new File("/Users/fangjin/Downloads/v8-tmp");
+    File tmpFile = File.createTempFile("yay", "who");
+    tmpFile.deleteOnExit();
+    DefaultIndexIOHandler.convertV8toV9(v8, tmpFile);
+    System.out.println("CONVERTED!!");
+    tmpFile.delete();
+  }
 }
