@@ -4,6 +4,8 @@ layout: doc_page
 Segments
 ========
 
+Druid segments contain data for a time interval, stored as separate columns. In addition, dimensions (string columns) have an inverted indexes associated with them for each dimension value.
+
 The latest Druid segment version is `v9`.
 
 Naming Convention
