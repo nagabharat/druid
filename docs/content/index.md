@@ -144,6 +144,11 @@ Druid has a couple of external dependencies for cluster operations.
 * **Deep Storage** Deep storage acts as a permanent backup of segments. Services that create segments upload segments to deep storage and historical nodes download
 segments from deep storage. Deep storage is not involved in the query path. S3 and HDFS are popular deep storages.
 
+### High Availability Characteristics
+
+Druid is designed to have no single point of failure. Different node types are able to fail without impacting the services of the other node types. To run a highly available Druid cluster, you should have at least 2 nodes of every node type running.
+
 ### Comprehensive Architecture
 
 For a comprehensive look at Druid architecture, please read our [white paper](http://static.druid.io/docs/druid.pdf).
+
