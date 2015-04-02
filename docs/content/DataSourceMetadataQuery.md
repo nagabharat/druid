@@ -11,7 +11,7 @@ The grammar for these queries is:
 ```json
 {
     "queryType" : "dataSourceMetadata",
-    "dataSource": "sample_datasource",
+    "dataSource": "sample_datasource"
 }
 ```
 
