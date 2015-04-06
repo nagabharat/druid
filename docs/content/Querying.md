@@ -12,15 +12,10 @@ REST query interface. For normal Druid operations, queries should be issued to t
 
 Although Druid's native query language is JSON over HTTP, many members of the community have contributed different [client libraries](./Libraries.html) in other languages to query Druid.
 
-Query Operators
----------------
-
-Queries are composed of various JSON properties and Druid has different types of queries for different use cases. The documentation for the various query types describe all the JSON properties that can be set.
-
 Available Queries
 -----------------
 
-Druid has numerous query types for various use cases.
+Druid has numerous query types for various use cases. Queries are composed of various JSON properties and Druid has different types of queries for different use cases. The documentation for the various query types describe all the JSON properties that can be set.
 
 ### Aggregation Queries
 

@@ -11,7 +11,7 @@ the method you choose to ingest your data into Druid should be driven by your us
 If you have a continuous stream of data, there are a few options to get your data into Druid. It should be noted that the current state of real-time ingestion in Druid,
 like many other popular stream infrastructure open source projects, does not guarantee exactly once processing. The real-time pipeline is meant to surface insights on
  events as they are occurring. For an accurate copy of ingested data, an accompanying batch pipeline is required. We are working towards a streaming only word, but for
- the time being, we recommended running a lambda architecture.
+ the time being, we recommend running a lambda architecture.
 
 ### Ingest from a Stream Processor
 
@@ -21,8 +21,8 @@ your real-time ingestion. This setup requires using the indexing service for ing
 ### Ingest from Apache Kafka
 
 If you wish to ingest directly from Kafka using Tranquility, you will have to write a consumer that reads from Kafka and passes the data to Tranquility.
-The other options to use [standalone Realtime nodes]().
-It should noted that standalone realtime nodes use the Kafka high level consumer, which imposes a few restrictions.
+The other option is to use [standalone Realtime nodes](./Realtime.html).
+It should be noted that standalone realtime nodes use the Kafka high level consumer, which imposes a few restrictions.
 
 Druid replicates segment such that logically equivalent data segments are concurrently hosted on N nodes. If N–1 nodes go down,
 the data will still be available for querying. On real-time nodes, this process depends on maintaining logically equivalent
@@ -40,7 +40,7 @@ From Druid's perspective, the segments hosted by real-time nodes 1 and 3 are the
 2 and 4 are the same, although they are reading from different Kafka partitions. Querying for the data will yield inconsistent
 results.
 
-This is not always a problem? No. If your data is small enough to fit on a single Kafka partition, you can replicate with issues.
+Is this always a problem? No. If your data is small enough to fit on a single Kafka partition, you can replicate without issues.
 Otherwise, you can run real-time nodes without replication.
 
 ## Large Batch of Static Data

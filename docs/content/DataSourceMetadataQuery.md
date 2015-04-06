@@ -20,7 +20,7 @@ There are 2 main parts to a Data Source Metadata query:
 |property|description|required?|
 |--------|-----------|---------|
 |queryType|This String should always be "dataSourceMetadata"; this is the first thing Druid looks at to figure out how to interpret the query|yes|
-|dataSource|An String or Object defining the data source to query, very similar to a table in a relational database. See [DataSource](DataSource.html) for more information.|yes|
+|dataSource|A String or Object defining the data source to query, very similar to a table in a relational database. See [DataSource](DataSource.html) for more information.|yes|
 |context|See [Context](Context.html)|no|
 
 The format of the result is:

@@ -51,7 +51,7 @@ There are 11 main parts to a groupBy query:
 |property|description|required?|
 |--------|-----------|---------|
 |queryType|This String should always be "groupBy"; this is the first thing Druid looks at to figure out how to interpret the query|yes|
-|dataSource|An String or Object defining the data source to query, very similar to a table in a relational database. See [DataSource](DataSource.html) for more information.|yes|
+|dataSource|A String or Object defining the data source to query, very similar to a table in a relational database. See [DataSource](DataSource.html) for more information.|yes|
 |dimensions|A JSON list of dimensions to do the groupBy over; or see [DimensionSpec](DimensionSpecs) for ways to extract dimensions. |yes|
 |limitSpec|See [LimitSpec](LimitSpec.html).|no|
 |having|See [Having](Having.html).|no|

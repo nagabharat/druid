@@ -48,7 +48,7 @@ There are 7 main parts to a timeseries query:
 |property|description|required?|
 |--------|-----------|---------|
 |queryType|This String should always be "timeseries"; this is the first thing Druid looks at to figure out how to interpret the query|yes|
-|dataSource|An String or Object defining the data source to query, very similar to a table in a relational database. See [DataSource](DataSource.html) for more information.|yes|
+|dataSource|A String or Object defining the data source to query, very similar to a table in a relational database. See [DataSource](DataSource.html) for more information.|yes|
 |intervals|A JSON Object representing ISO-8601 Intervals. This defines the time ranges to run the query over.|yes|
 |granularity|Defines the granularity to bucket query results. See [Granularities](Granularities.html)|yes|
 |filter|See [Filters](Filters.html)|no|
