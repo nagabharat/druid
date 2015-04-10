@@ -19,7 +19,7 @@ To frame our discussion, let's begin with an example data set (from online adver
     2011-01-01T02:00:00Z  ultratrimfast.com  google.com  Female  UK       0      0.99
     2011-01-01T02:00:00Z  ultratrimfast.com  google.com  Female  UK       1      1.53
 
-This data set is composed of three distinct components. If you are familiar with OLAP terminology, the following concepts should not be new.
+This data set is composed of three distinct components. If you are acquainted with OLAP terminology, the following concepts should be familiar.
 
 * **Timestamp column**: We treat timestamp separately because all of our queries
  center around the time axis.
@@ -114,7 +114,7 @@ Real-time processing involves ingesting data, indexing the data (creating segmen
 
 Druid has a couple of external dependencies for cluster operations.
 
-* **Distributed Coordination** Druid relies on a distributed coordination service for intra-cluster communication. The only supported distributed coordination service right now is Zookeeper.
+* **Zookeeper** Druid relies on Zookeeper for intra-cluster communication.
 
 * **Metadata Storage** Druid relies on a metadata storage to store metadata about segments and configuration. Services that create segments write new entries to the metadata store
   and the coordinator nodes monitor the metadata store to know when new data needs to be loaded or old data needs to be dropped. The metadata store is not
