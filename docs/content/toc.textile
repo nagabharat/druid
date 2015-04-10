@@ -4,7 +4,7 @@
 <link rel="stylesheet" href="css/toc.css">
 
 h2. Getting Started
-* "Introduction":./
+* "Concepts":./
 * "Hello, Druid":./Tutorial:-A-First-Look-at-Druid.html
 * "Tutorials":./Tutorials.html
 * "Evaluate Druid":./Evaluate.html
@@ -74,4 +74,5 @@ h2. Development
 ** "Router node":./Router.html
 
 h2. Misc
+* "Papers & Talks":./Papers-and-talks.html
 * "Thanks":/thanks.html

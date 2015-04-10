@@ -8,8 +8,7 @@ the method you choose to ingest your data into Druid should be driven by your us
 
 ## Streaming Data
 
-If you have a continuous stream of data, there are a few options to get your data into Druid. It should be noted that the current state of real-time ingestion in Druid,
-like many other popular stream infrastructure open source projects, does not guarantee exactly once processing. The real-time pipeline is meant to surface insights on
+If you have a continuous stream of data, there are a few options to get your data into Druid. It should be noted that the current state of real-time ingestion in Druid does not guarantee exactly once processing. The real-time pipeline is meant to surface insights on
  events as they are occurring. For an accurate copy of ingested data, an accompanying batch pipeline is required. We are working towards a streaming only word, but for
  the time being, we recommend running a lambda architecture.
 
@@ -65,3 +64,19 @@ In this example, hourly raw events are stored in individual gzipped files. Perio
 
 We recommend running a streaming real-time pipeline to run queries over events as they are occurring and a batch pipeline to perform periodic
 cleanups of data.
+
+## Sharding
+
+Multiple segments may exist for the same interval of time for the same datasource. These segments form a `block` for an interval.
+Depending on the type of `shardSpec` that is used to shard the data, Druid queries may only complete if a `block` is complete. That is to say, if a block consists of 3 segments, such as:
+
+`sampleData_2011-01-01T02:00:00:00Z_2011-01-01T03:00:00:00Z_v1_0`
+
+`sampleData_2011-01-01T02:00:00:00Z_2011-01-01T03:00:00:00Z_v1_1`
+
+`sampleData_2011-01-01T02:00:00:00Z_2011-01-01T03:00:00:00Z_v1_2`
+
+All 3 segments must be loaded before a query for the interval `2011-01-01T02:00:00:00Z_2011-01-01T03:00:00:00Z` completes.
+
+The exception to this rule is with using linear shard specs. Linear shard specs do not force 'completeness' and queries can complete even if shards are not loaded in the system.
+For example, if your real-time ingestion creates 3 segments that were sharded with linear shard spec, and only two of the segments were loaded in the system, queries would return results only for those 2 segments.
