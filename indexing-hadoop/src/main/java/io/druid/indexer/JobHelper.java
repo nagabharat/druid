@@ -75,7 +75,7 @@ public class JobHelper
         final Path hdfsPath = new Path(distributedClassPath, jarFile.getName());
 
         if (!existing.contains(hdfsPath)) {
-          if (jarFile.getName().endsWith("SNAPSHOT.jar") || !fs.exists(hdfsPath)) {
+          if (jarFile.getName().matches(".*SNAPSHOT(-selfcontained)?\\.jar$") || !fs.exists(hdfsPath)) {
             log.info("Uploading jar to path[%s]", hdfsPath);
             ByteStreams.copy(
                 Files.newInputStreamSupplier(jarFile),
@@ -112,7 +112,7 @@ public class JobHelper
   {
     // config.addInputPaths() can have side-effects ( boo! :( ), so this stuff needs to be done before anything else
     try {
-      Job job = new Job(
+      Job job = Job.getInstance(
           new Configuration(),
           String.format("%s-determine_partitions-%s", config.getDataSource(), config.getIntervals())
       );
