@@ -805,6 +805,53 @@ public class GroupByQueryRunnerTest
     );
   }
 
+  @Test
+  public void testMergeResultsAcrossMultipleDaysWithLimit()
+  {
+    final int limit = 14;
+    GroupByQuery.Builder builder = GroupByQuery
+        .builder()
+        .setDataSource(QueryRunnerTestHelper.dataSource)
+        .setInterval(QueryRunnerTestHelper.firstToThird)
+        .setDimensions(Lists.<DimensionSpec>newArrayList(new DefaultDimensionSpec("quality", "alias")))
+        .setAggregatorSpecs(
+            Arrays.asList(
+                QueryRunnerTestHelper.rowsCount,
+                new LongSumAggregatorFactory("idx", "index")
+            )
+        )
+        .setGranularity(QueryGranularity.DAY)
+        .setLimit(limit);
+
+    final GroupByQuery fullQuery = builder.build();
+
+    List<Row> expectedResults = Arrays.asList(
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-01", "alias", "automotive", "rows", 1L, "idx", 135L),
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-01", "alias", "business", "rows", 1L, "idx", 118L),
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-01", "alias", "entertainment", "rows", 1L, "idx", 158L),
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-01", "alias", "health", "rows", 1L, "idx", 120L),
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-01", "alias", "mezzanine", "rows", 3L, "idx", 2870L),
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-01", "alias", "news", "rows", 1L, "idx", 121L),
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-01", "alias", "premium", "rows", 3L, "idx", 2900L),
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-01", "alias", "technology", "rows", 1L, "idx", 78L),
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-01", "alias", "travel", "rows", 1L, "idx", 119L),
+
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-02", "alias", "automotive", "rows", 1L, "idx", 147L),
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-02", "alias", "business", "rows", 1L, "idx", 112L),
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-02", "alias", "entertainment", "rows", 1L, "idx", 166L),
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-02", "alias", "health", "rows", 1L, "idx", 113L),
+        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-02", "alias", "mezzanine", "rows", 3L, "idx", 2447L)
+    );
+
+    QueryRunner<Row> mergeRunner = factory.getToolchest().mergeResults(runner);
+
+    Map<String, Object> context = Maps.newHashMap();
+    TestHelper.assertExpectedObjects(
+        Iterables.limit(expectedResults, limit), mergeRunner.run(fullQuery, context), String.format("limit: %d", limit)
+    );
+  }
+
+
   @Test(expected = IllegalArgumentException.class)
   public void testMergeResultsWithNegativeLimit()
   {
@@ -1246,8 +1293,8 @@ public class GroupByQueryRunnerTest
             )
         )
         .setInterval(QueryRunnerTestHelper.firstToThird)
-        // Using a limitSpec here to achieve a per group limit is incorrect.
-        // Limit is applied on the overall results.
+            // Using a limitSpec here to achieve a per group limit is incorrect.
+            // Limit is applied on the overall results.
         .setLimitSpec(
             new DefaultLimitSpec(
                 Lists.newArrayList(
@@ -1514,9 +1561,39 @@ public class GroupByQueryRunnerTest
   public void testMergedPostAggHavingSpec()
   {
     List<Row> expectedResults = Arrays.asList(
-        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-01", "alias", "business", "rows", 2L, "idx", 217L, "rows_times_10", 20.0),
-        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-01", "alias", "mezzanine", "rows", 6L, "idx", 4420L, "rows_times_10", 60.0),
-        GroupByQueryRunnerTestHelper.createExpectedRow("2011-04-01", "alias", "premium", "rows", 6L, "idx", 4416L, "rows_times_10", 60.0)
+        GroupByQueryRunnerTestHelper.createExpectedRow(
+            "2011-04-01",
+            "alias",
+            "business",
+            "rows",
+            2L,
+            "idx",
+            217L,
+            "rows_times_10",
+            20.0
+        ),
+        GroupByQueryRunnerTestHelper.createExpectedRow(
+            "2011-04-01",
+            "alias",
+            "mezzanine",
+            "rows",
+            6L,
+            "idx",
+            4420L,
+            "rows_times_10",
+            60.0
+        ),
+        GroupByQueryRunnerTestHelper.createExpectedRow(
+            "2011-04-01",
+            "alias",
+            "premium",
+            "rows",
+            6L,
+            "idx",
+            4416L,
+            "rows_times_10",
+            60.0
+        )
     );
 
     GroupByQuery.Builder builder = GroupByQuery
